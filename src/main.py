@@ -1,5 +1,6 @@
+import asyncio
 import time
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright, Page
 
 # Einstellungen für grundlegende Funktionen
 do_screenshots = True
@@ -16,94 +17,93 @@ use_number_comments = True
 use_number_bookmarks = True
 use_upload_date = True
 
-
 # Grundlegende Funktion zum suchen von bestimmten Tags
-def get_content(tag, search):
-    data = page.query_selector('%s[data-e2e="%s"]' % (tag, search))
+async def get_content(tag, search, page: Page):
+    data = await page.query_selector('%s[data-e2e="%s"]' % (tag, search))
     if data:
-        return data.text_content()
+        return await data.text_content()
     print("Content für '%s' konnte in einem %s-Tag nicht gefunden werden." % (search, tag))
-    print("")
-    print(data)
-    print("")
     return ""
 
 
 # Funktion gibt URL von dem aktuellen Video aus
-def get_video_url():
-    return get_content("p", "browse-video-link").split("?")[0]
+async def get_video_url(page: Page):
+    result = await get_content("p", "browse-video-link", page)
+    if result == "":
+        return "" 
+    return result.split("?")[0]
 
 
 # Funktion gibt den Username des Authors von dem aktuellen Video aus
-def get_username():
-    return get_content("span", "browse-username")
+async def get_username(page: Page):
+    return await get_content("span", "browse-username", page)
 
 
 # Funktion gibt den Nickname des Authors von dem aktuellen Video aus
-def get_nickname():
-    return get_content("span", "browser-nickname").split("·")[0]
+async def get_nickname(page: Page):
+    result = await get_content("span", "browser-nickname", page)
+    if result == "":
+        return "" 
+    return result.split("·")[0]
 
 
 # Funktion gibt die Beschreibung von dem aktuellen Video aus
-def get_video_caption():
-    return get_content("div", "browse-video-desc")
+async def get_video_caption(page: Page):
+    return await get_content("div", "browse-video-desc", page)
 
 
 # Funktion gibt den namen des Sounds von dem aktuellen Video aus
-def get_video_sound():
-    return get_content("h4", "browse-music")
+async def get_video_sound(page: Page):
+    return await get_content("h4", "browse-music", page)
 
 
 # Funktion gibt Anzahl der Likes von dem aktuellen Video aus
-def get_number_likes():
-    return get_content("strong", "browse-like-count")
+async def get_number_likes(page: Page):
+    return await get_content("strong", "browse-like-count", page)
 
 
 # Funktion gibt Anzahl der Kommentare von dem aktuellen Video aus
-def get_number_comments():
-    return get_content("strong", "browse-comment-count")
+async def get_number_comments(page: Page):
+    return await get_content("strong", "browse-comment-count", page)
 
 
 # Funktion gibt Anzahl der Lesezeichen von dem aktuellen Video aus
-def get_number_bookmarks():
-    return get_content("strong", "undefined-count")
+async def get_number_bookmarks(page: Page):
+    return await get_content("strong", "undefined-count", page)
 
 
-def get_upload_date():
-    return get_content("span", "browser-nickname").split(" · ")[1]
+async def get_upload_date(page: Page):
+    result = await get_content("span", "browser-nickname", page)
+    if result == "":
+        return "" 
+    return result.split(" · ")[1]
 
 
-def on_button_next_click():
-    print("BUTTON CLICKED!!!")
+async def listener_button_next_click(page: Page):
 
+    async def on_button_next_click():
+        await fetch_data(page)
 
-def listener_button_next_click(page):
-    page.expose_function("onButtonClick", on_button_next_click)
-    page.evaluate("""() => {
+    await page.expose_function("onButtonClick", on_button_next_click)
+    await page.evaluate("""() => {
                         const button = document.querySelector('button[data-e2e="arrow-right"]');
                         if (button) {
                             button.addEventListener('click', () => window.onButtonClick());
                         }
                     }""")
+    
 
-
-with sync_playwright() as p:
-    browser = p.webkit.launch(headless=False)
-    page = browser.new_page()
-    page.goto("https://tiktok.com")
-
-    input("Drücke auf Enter sobald du bereit bist.")
-
+async def fetch_data(page: Page):
     timestamp = time.time()
-    video_url = get_video_url()
-    username = get_username()
-    nickname = get_nickname()
-    video_caption = get_video_caption()
-    video_sound = get_video_sound()
-    number_likes = get_number_likes()
-    number_comments = get_number_comments()
-    number_bookmarks = get_number_bookmarks()
-    upload_date = get_upload_date()
+    video_url = await get_video_url(page)
+    username = await get_username(page)
+    nickname = await get_nickname(page)
+    video_caption = await get_video_caption(page)
+    video_sound = await get_video_sound(page)
+    number_likes = await get_number_likes(page)
+    number_comments = await get_number_comments(page)
+    number_bookmarks = await get_number_bookmarks(page)
+    upload_date = await get_upload_date(page)
 
     print("Timestamp: %s" % timestamp)
     print("URL: %s" % video_url)
@@ -115,6 +115,27 @@ with sync_playwright() as p:
     print("Number Comments: %s" % number_comments)
     print("Number Bookmarks: %s" % number_bookmarks)
     print("Upload Date: %s" % upload_date)
+    print("")
 
-    input("Press Enter to Stop")
-    browser.close()
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.webkit.launch(headless=False)
+        page = await browser.new_page()
+        await page.goto("https://tiktok.com")
+
+        input("Drücke auf Enter sobald du bereit bist.")
+
+        await fetch_data(page)
+        await listener_button_next_click(page)
+
+        try:
+            while True:
+                await asyncio.sleep(1)  # Asynchronously sleep to keep the event loop running
+        except Exception as e:
+            print("Exiting...")
+        finally:
+            await browser.close()
+
+
+asyncio.run(main())
