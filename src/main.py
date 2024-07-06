@@ -19,7 +19,7 @@ use_number_comments = True
 use_number_bookmarks = True
 use_upload_date = True
 
-time_str = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
+time_str = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 if not os.path.exists("./out/"): os.mkdir("./out/")
 csv_filename = "./out/%s_data.csv" % (time_str)
 
@@ -114,7 +114,8 @@ async def listener_button_next_click(page: Page):
 
 async def fetch_data(page: Page):
     
-    timestamp = time.time()
+    # timestamp = time.time()
+    timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
     data_dict = { 'timestamp': timestamp } 
 
     for fieldname in get_csv_fieldnames():
