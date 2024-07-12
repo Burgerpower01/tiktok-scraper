@@ -247,6 +247,7 @@ async def main():
         except Exception as e:
             print("Exiting...")
         finally:
+            await page.close()
             await browser.close()
 
 
