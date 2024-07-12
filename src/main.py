@@ -1,8 +1,10 @@
 import asyncio
 import time
 import csv
+import json
 import os
 from playwright.async_api import async_playwright, Page
+from pathlib import Path
 
 # Einstellungen für grundlegende Funktionen
 do_screenshots = True
@@ -24,6 +26,7 @@ use_video_length = True
 time_str = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 if not os.path.exists("./out/"): os.mkdir("./out/")
 csv_filename = "./out/%s_data.csv" % (time_str)
+cookie_filename = "./cookies.json"
 
 if do_screenshots:
     if not os.path.exists("./out/screenshots/"): os.mkdir("./out/screenshots/")
@@ -201,10 +204,25 @@ def write_csv(data_dict):
         writer.writerow(data_dict)
 
 
+async def save_cookies(page: Page):
+    cookies = await page.context.cookies()
+    Path(cookie_filename).write_text(json.dumps(cookies))
+    
+
+async def restore_cookies(page: Page):
+    await page.context.add_cookies(json.loads(Path(cookie_filename).read_text()))
+
+
 async def main():
     async with async_playwright() as p:
         browser = await p.webkit.launch(headless=False)
         page = await browser.new_page()
+
+        # Restore Cookies with login etc.
+        if os.path.exists(cookie_filename):
+            await restore_cookies(page)
+            print("Login Data has been restored.")
+
         await page.goto("https://tiktok.com")
 
         # Schreibe CSV Header
@@ -214,6 +232,11 @@ async def main():
 
         # Warte, bis der nutzer Enter drückt
         input("Drücke auf Enter sobald du bereit bist.")
+
+        # Save cookies if not already saved
+        if not os.path.exists(cookie_filename):
+            await save_cookies(page)
+            print("Login Data has been saved.")
 
         write_csv(await fetch_data(page))
         await listener_button_next_click(page)
