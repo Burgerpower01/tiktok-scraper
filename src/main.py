@@ -7,6 +7,7 @@ from playwright.async_api import async_playwright, Page
 # Einstellungen für grundlegende Funktionen
 do_screenshots = True
 do_debbuging = False
+load_time = 1 # How long to wait in seconds for video to load
 
 # Einstellungen, welche Daten berücksichtigt werden sollen
 use_url = True
@@ -18,6 +19,7 @@ use_number_likes = True
 use_number_comments = True
 use_number_bookmarks = True
 use_upload_date = True
+use_video_length = True
 
 time_str = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 if not os.path.exists("./out/"): os.mkdir("./out/")
@@ -31,6 +33,17 @@ if do_screenshots:
 # Grundlegende Funktion zum suchen von bestimmten Tags
 async def get_content(tag, search, page: Page):
     data = await page.query_selector('%s[data-e2e="%s"]' % (tag, search))
+    if data:
+        data_text = await data.text_content()
+        if data_text.strip() != "":
+            return data_text
+    print("Content für '%s' konnte in einem %s-Tag nicht gefunden werden." % (search, tag))
+    return ""
+
+
+async def get_content_v2(tag, search, page: Page):
+    time.sleep(load_time) # Wait 1s for video to load
+    data = await page.query_selector('%s[class="%s"]' % (tag, search))
     if data:
         data_text = await data.text_content()
         if data_text.strip() != "":
@@ -97,6 +110,12 @@ async def get_upload_date(page: Page):
         return "" 
     return result.split(" · ")[1].replace(",", "")
 
+async def get_video_length(page: Page):
+    result = await get_content_v2("div", "css-o2z5xv-DivSeekBarTimeContainer e1rpry1m1", page)
+    if result == "":
+        return ""
+    return result.strip().split("/")[1]
+
 
 async def listener_button_next_click(page: Page):
 
@@ -146,6 +165,9 @@ async def fetch_data(page: Page):
         if fieldname == "upload_date": 
             data_dict["upload_date"] = await get_upload_date(page)
 
+        if fieldname == "video_length":
+            data_dict["video_length"] = await get_video_length(page)
+
     if do_debbuging:
         print(data_dict)
         print("")
@@ -168,6 +190,7 @@ def get_csv_fieldnames():
     if use_number_comments: fieldnames.append('number_comments')
     if use_number_bookmarks: fieldnames.append('number_bookmarks')
     if use_upload_date: fieldnames.append('upload_date')
+    if use_video_length: fieldnames.append('video_length')
 
     return fieldnames
 
