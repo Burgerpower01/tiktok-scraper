@@ -120,6 +120,7 @@ async def get_video_length(page: Page):
     return result.strip().split("/")[1]
 
 
+# Funktion, die sich auf den "Weiter knopf regestriert und das schreiben der CSV datei anstößt"
 async def listener_button_next_click(page: Page):
 
     async def on_button_next_click():
@@ -134,6 +135,7 @@ async def listener_button_next_click(page: Page):
                     }""")
     
 
+# Funktion, die alle Informationen in einem "Packet" speichert
 async def fetch_data(page: Page):
     
     # timestamp = time.time()
@@ -238,9 +240,13 @@ async def main():
             await save_cookies(page)
             print("Login Data has been saved.")
 
+        # Schreibe erste Zeile von der CSV mit den Feldnamen
         write_csv(await fetch_data(page))
+
+        # Regestriere dich auf den "Weiter" Knopf, damit das Programm weiß, wann er gedrückt wird
         await listener_button_next_click(page)
 
+        # Ab da dreht sich das Programm und reagriert immer auf den "Weiter" Button
         try:
             while True:
                 await asyncio.sleep(1)
