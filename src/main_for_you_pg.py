@@ -14,14 +14,14 @@ load_time = 1 # How long to wait in seconds for video to load
 # Einstellungen, welche Daten berücksichtigt werden sollen
 use_url = True
 use_username = True
-use_nickname = False
+use_nickname = True
 use_video_caption = True
-use_video_sound = False
+use_video_sound = True
 use_number_likes = True
 use_number_comments = True
 use_number_bookmarks = True
-use_upload_date = False
-use_video_length = False
+use_upload_date = True
+use_video_length = True
 
 time_str = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 if not os.path.exists("./out/"): os.mkdir("./out/")
@@ -33,8 +33,8 @@ if do_screenshots:
     if not os.path.exists("./out/screenshots/%s" % time_str): os.mkdir("./out/screenshots/%s" % time_str)
 
 
-# Grundlegende Funktion zum suchen von bestimmten Tags
-async def get_content(tag, search, page: Page):
+# Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'data-e2e='
+async def get_content_by_data_e2e(tag, search, page: Page):
     data = await page.query_selector('%s[data-e2e="%s"]' % (tag, search))
     if data:
         data_text = await data.text_content()
@@ -44,7 +44,25 @@ async def get_content(tag, search, page: Page):
     return ""
 
 
-async def get_content_v2(tag, search, page: Page):
+# Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'data-e2e='
+async def get_all_content_by_data_e2e(tag, search, page: Page):
+    data = await page.query_selector_all('%s[data-e2e="%s"]' % (tag, search))
+    data_text_list = []
+    if data:
+        for item in data:
+            decoded_item = await item.text_content()
+            if decoded_item.strip() == "":
+                print("[Warning] Missing %s in <%s>" % (search, tag))
+
+            data_text_list.append(decoded_item)
+
+        return data_text_list
+
+    print("[Error] No %s in <%s> does exist. Consider turning it off in the script" % (search, tag))
+    return []
+
+# Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'class='
+async def get_content_by_class(tag, search, page: Page):
     time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector('%s[class="%s"]' % (tag, search))
     if data:
@@ -55,9 +73,60 @@ async def get_content_v2(tag, search, page: Page):
     return ""
 
 
+# 
+async def get_all_content_by_class(tag, search, page: Page):
+    time.sleep(load_time) # Wait 1s for video to load
+    data = await page.query_selector_all('%s[class="%s"]' % (tag, search))
+    data_text_list = []
+    if data:
+        for item in data:
+            decoded_item = await item.text_content()
+            if decoded_item.strip() == "":
+                print("[Warning] Missing %s in <%s>" % (search, tag))
+
+            data_text_list.append(decoded_item)
+
+        return data_text_list
+
+    print("[Error] No %s in <%s> does exist. Consider turning it off in the script" % (search, tag))
+    return []
+
+
+# Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'id='
+async def get_content_by_class(tag, search, page: Page):
+    time.sleep(load_time) # Wait 1s for video to load
+    data = await page.query_selector('%s[id="%s"]' % (tag, search))
+    if data:
+        data_text = await data.text_content()
+        if data_text.strip() != "":
+            return data_text
+    print("Content für '%s' konnte in einem %s-Tag nicht gefunden werden." % (search, tag))
+    return ""
+
+
+# 
+async def get_all_content_by_class(tag, search, page: Page):
+    time.sleep(load_time) # Wait 1s for video to load
+    data = await page.query_selector_all('%s[id="%s"]' % (tag, search))
+    data_text_list = []
+    if data:
+        for item in data:
+            decoded_item = await item.text_content()
+            if decoded_item.strip() == "":
+                print("[Warning] Missing %s in <%s>" % (search, tag))
+
+            data_text_list.append(decoded_item)
+
+        return data_text_list
+
+    print("[Error] No %s in <%s> does exist. Consider turning it off in the script" % (search, tag))
+    return []
+
+### ------------------------------------------------------------------------
+
 # Funktion gibt URL von dem aktuellen Video aus NEU
 async def get_video_url(page: Page):
-    result = await get_content("span", "share-icon", page)
+    result = await get_content_by_data_e2e("span", "share-icon", page)
     if result == "":
         return "" 
     return result.split("?")[0].replace(",", "")
@@ -65,13 +134,13 @@ async def get_video_url(page: Page):
 
 # Funktion gibt den Username des Authors von dem aktuellen Video aus NEU
 async def get_username(page: Page):
-    result = await get_content("h3", "video-author-uniqueid", page)
+    result = await get_content_by_data_e2e("h3", "video-author-uniqueid", page)
     return result.replace(",", "")
 
 
 # Funktion gibt den Nickname des Authors von dem aktuellen Video aus NEU
 async def get_nickname(page: Page):
-    result = await get_content("a", "user-card-username", page)
+    result = await get_content_by_data_e2e("a", "user-card-username", page)
     if result == "":
         return "" 
     return result.split("·")[0].replace(",", "")
@@ -79,53 +148,166 @@ async def get_nickname(page: Page):
 
 # Funktion gibt die Beschreibung von dem aktuellen Video aus NEU
 async def get_video_caption(page: Page):
-    result = await get_content("div", "video-desc", page)
+    result = await get_content_by_data_e2e("div", "video-desc", page)
     return result.replace(",", "")
 
 
 # Funktion gibt den namen des Sounds von dem aktuellen Video aus NEU
 async def get_video_sound(page: Page):
-    result = await get_content("div", "css-pvx3oa-DivMusicText epjbyn3", page)
+    result = await get_content_by_data_e2e("div", "css-pvx3oa-DivMusicText epjbyn3", page)
     return result.replace(",", "")
 
 
 # Funktion gibt Anzahl der Likes von dem aktuellen Video aus NEU
 async def get_number_likes(page: Page):
-    result = await get_content("strong", "like-count", page)
+    result = await get_content_by_data_e2e("strong", "like-count", page)
     return result.replace(",", "")
 
 
 # Funktion gibt Anzahl der Kommentare von dem aktuellen Video aus NEU
 async def get_number_comments(page: Page):
-    result = await get_content("strong", "comment-count", page)
+    result = await get_content_by_data_e2e("strong", "comment-count", page)
     return result.replace(",", "")
 
 
 # Funktion gibt Anzahl der Lesezeichen von dem aktuellen Video aus NEU
 async def get_number_bookmarks(page: Page):
-    result = await get_content("strong", "undefined-count", page)
+    result = await get_content_by_data_e2e("strong", "undefined-count", page)
     return result.replace(",", "")
 
 # upload-date auch nicht zu finden --> egal
 async def get_upload_date(page: Page):
-    result = await get_content("span", "user-card-username", page)
+    result = await get_content_by_data_e2e("span", "user-card-username", page)
     if result == "":
         return "" 
     return result.split(" · ")[1].replace(",", "")
 
 # Length --> schwierig; nur relative/verbleibende Zeit --> egal
 async def get_video_length(page: Page):
-    result = await get_content_v2("div", "css-o2z5xv-DivSeekBarTimeContainer e1rpry1m1", page)
+    result = await get_content_by_class("div", "css-o2z5xv-DivSeekBarTimeContainer e1rpry1m1", page)
     if result == "":
         return ""
     return result.strip().split("/")[1]
 
 
-# Funktion, die sich auf den "Weiter knopf regestriert und das schreiben der CSV datei anstößt"
+### ------------------------------------------------------------------------
+
+async def get_video_url_all(page: Page):
+    result = await get_all_content_by_data_e2e("span", "share-icon", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.split("?")[0].replace(",", ""))
+    return filtered_result
+
+
+async def get_username_all(page: Page):
+    result = await get_all_content_by_data_e2e("h3", "video-author-uniqueid", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.replace(",", ""))
+    return filtered_result
+
+
+async def get_nickname_all(page: Page):
+    result = await get_all_content_by_data_e2e("a", "user-card-username", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.split("·")[0].replace(",", ""))
+    return filtered_result
+
+
+async def get_video_caption_all(page: Page):
+    result = await get_all_content_by_data_e2e("div", "video-desc", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.replace(",", ""))
+    return filtered_result
+
+
+async def get_video_sound_all(page: Page):
+    result = await get_all_content_by_data_e2e("div", "css-pvx3oa-DivMusicText epjbyn3", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.replace(",", ""))
+    return filtered_result
+
+
+async def get_number_likes_all(page: Page):
+    result = await get_all_content_by_data_e2e("strong", "like-count", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.replace(",", ""))
+    return filtered_result
+
+
+async def get_number_comments_all(page: Page):
+    result = await get_all_content_by_data_e2e("strong", "comment-count", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.replace(",", ""))
+    return filtered_result
+
+
+async def get_number_bookmarks_all(page: Page):
+    result = await get_all_content_by_data_e2e("strong", "undefined-count", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.replace(",", ""))
+    return filtered_result
+
+
+async def get_upload_date_all(page: Page):
+    result = await get_all_content_by_data_e2e("span", "user-card-username", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.split(" · ")[1].replace(",", ""))
+    return filtered_result
+
+
+async def get_video_length_all(page: Page):
+    result = await get_all_content_by_class("div", "css-o2z5xv-DivSeekBarTimeContainer e1rpry1m1", page)
+    filtered_result = []
+    for item in result:
+        if item == "":
+            filtered_result.append(item)
+            continue
+        filtered_result.append(item.strip().split("/")[1])
+    return filtered_result
+
+
+# Funktion, die ausgeführt wird wenn man die Pfeiltaste nach unten auf der Tastatur drückt 
 async def listener_arrow_down_pressed(page: Page):
 
     async def on_arrow_down_pressed():
-        write_csv(await fetch_data(page))
+        await get_all_content_by_data_e2e("h3", "video-author-uniqueid", page)
+        # write_csv(await fetch_data(page))
 
     await page.expose_function("onArrowPressed", on_arrow_down_pressed)
     await page.evaluate("""() => {
