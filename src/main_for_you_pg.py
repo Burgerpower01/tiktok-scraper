@@ -9,17 +9,17 @@ from pathlib import Path
 # Einstellungen für grundlegende Funktionen
 do_screenshots = True
 do_debbuging = False
-load_time = 1 # How long to wait in seconds for video to load
+load_time = 3 # How long to wait in seconds for video to load
 
 # Einstellungen, welche Daten berücksichtigt werden sollen
 use_url = False
 use_username = True
 use_nickname = False
-use_video_caption = False
+use_video_caption = True
 use_video_sound = False
-use_number_likes = False
-use_number_comments = False
-use_number_bookmarks = False
+use_number_likes = True
+use_number_comments = True
+use_number_bookmarks = True
 use_upload_date = False
 use_video_length = False
 
@@ -37,6 +37,7 @@ if do_screenshots:
 
 # Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'data-e2e='
 async def get_content_by_data_e2e(tag, search, page: Page):
+    # time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector('%s[data-e2e="%s"]' % (tag, search))
     if data:
         data_text = await data.text_content()
@@ -48,6 +49,7 @@ async def get_content_by_data_e2e(tag, search, page: Page):
 
 # Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'data-e2e='
 async def get_all_content_by_data_e2e(tag, search, page: Page):
+    # time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector_all('%s[data-e2e="%s"]' % (tag, search))
     data_text_list = []
     if data:
@@ -65,7 +67,7 @@ async def get_all_content_by_data_e2e(tag, search, page: Page):
 
 # Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'class='
 async def get_content_by_class(tag, search, page: Page):
-    time.sleep(load_time) # Wait 1s for video to load
+    # time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector('%s[class="%s"]' % (tag, search))
     if data:
         data_text = await data.text_content()
@@ -77,7 +79,7 @@ async def get_content_by_class(tag, search, page: Page):
 
 # 
 async def get_all_content_by_class(tag, search, page: Page):
-    time.sleep(load_time) # Wait 1s for video to load
+    # time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector_all('%s[class="%s"]' % (tag, search))
     data_text_list = []
     if data:
@@ -96,7 +98,7 @@ async def get_all_content_by_class(tag, search, page: Page):
 
 # Grundlegende Funktion zum suchen von bestimmten Tags anhand von 'id='
 async def get_content_by_class(tag, search, page: Page):
-    time.sleep(load_time) # Wait 1s for video to load
+    # time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector('%s[id="%s"]' % (tag, search))
     if data:
         data_text = await data.text_content()
@@ -108,7 +110,7 @@ async def get_content_by_class(tag, search, page: Page):
 
 # 
 async def get_all_content_by_class(tag, search, page: Page):
-    time.sleep(load_time) # Wait 1s for video to load
+    # time.sleep(load_time) # Wait 1s for video to load
     data = await page.query_selector_all('%s[id="%s"]' % (tag, search))
     data_text_list = []
     if data:
@@ -215,7 +217,6 @@ async def get_username_all(page: Page):
             print(item)
             filtered_result.append(item)
             continue
-        print("Appending %s" % item)
         filtered_result.append(item.replace(",", ""))
     return filtered_result
 
@@ -232,6 +233,7 @@ async def get_nickname_all(page: Page):
 
 
 async def get_video_caption_all(page: Page):
+    print("Getting video_caption...")
     result = await get_all_content_by_data_e2e("div", "video-desc", page)
     filtered_result = []
     for item in result:
@@ -254,6 +256,7 @@ async def get_video_sound_all(page: Page):
 
 
 async def get_number_likes_all(page: Page):
+    print("Getting Likes...")
     result = await get_all_content_by_data_e2e("strong", "like-count", page)
     filtered_result = []
     for item in result:
@@ -265,6 +268,7 @@ async def get_number_likes_all(page: Page):
 
 
 async def get_number_comments_all(page: Page):
+    print("Getting Number Comments...")
     result = await get_all_content_by_data_e2e("strong", "comment-count", page)
     filtered_result = []
     for item in result:
@@ -276,12 +280,14 @@ async def get_number_comments_all(page: Page):
 
 
 async def get_number_bookmarks_all(page: Page):
+    print("Getting Bookmarks...")
     result = await get_all_content_by_data_e2e("strong", "undefined-count", page)
     filtered_result = []
     for item in result:
         if item == "":
             filtered_result.append(item)
             continue
+        print("Appending %s" % item)
         filtered_result.append(item.replace(",", ""))
     return filtered_result
 
@@ -371,6 +377,8 @@ async def fetch_data(page: Page):
 async def fetch_data_block(page: Page):
     timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
 
+    time.sleep(load_time)
+
     temp_list_length = 0
     valid_list_length = True
     list_video_url = []
@@ -393,7 +401,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Video URL List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Video URL List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "username": 
@@ -402,7 +410,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Username List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Username List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "nickname": 
@@ -411,7 +419,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Nickname List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Nickname List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "video_caption": 
@@ -420,7 +428,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Video Caption List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Video Caption List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "video_sound": 
@@ -429,7 +437,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Video Sound List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Video Sound List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "number_likes": 
@@ -438,7 +446,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Number Like List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Number Like List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "number_comments": 
@@ -447,7 +455,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Number Comments List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Number Comments List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "number_bookmarks": 
@@ -456,7 +464,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Bookmarks List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Bookmarks List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "upload_date": 
@@ -465,7 +473,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Upload Date List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Upload Date List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
         if fieldname == "video_length":
@@ -474,7 +482,7 @@ async def fetch_data_block(page: Page):
             if temp_list_length == 0 and list_len != 0:
                 temp_list_length = list_len
             elif temp_list_length != list_len:
-                print("[Error] Video Length List has an unexpected length=%d! This could result in false data" % list_len)
+                print("[Error] Video Length List has an unexpected length=%d/%d! This could result in false data" % (list_len, temp_list_length))
                 valid_list_length = False
 
     if not valid_list_length:
@@ -541,12 +549,19 @@ def write_csv(data_dict):
         writer = csv.DictWriter(csvfile, fieldnames=get_csv_fieldnames())
         writer.writerow(data_dict)
 
+
 def write_csv_block(data_dict_block):
+    block_length = len(data_dict_block)
+
     with open(csv_filename, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=get_csv_fieldnames())
+        writer.writeheader()
+
         for data_dict in data_dict_block:
             writer.writerow(data_dict)
-    print("BLOCK WRITTEN")
+
+    print("BLOCK WRITTEN - %d Entries saved" % block_length)
+
 
 async def save_cookies(page: Page):
     cookies = await page.context.cookies()
@@ -569,10 +584,6 @@ async def main():
 
         await page.goto("https://tiktok.com")
 
-        # Schreibe CSV Header
-        with open(csv_filename, 'w', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=get_csv_fieldnames())
-            writer.writeheader()
 
         # Warte, bis der nutzer Enter drückt
         input("Drücke auf Enter sobald du bereit bist.")
