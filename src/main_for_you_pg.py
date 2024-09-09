@@ -250,7 +250,6 @@ async def get_video_sound_all(page: Page):
         if item == "":
             filtered_result.append(item)
             continue
-        print("Appending %s" % item)
         filtered_result.append(item.replace(",", ""))
     return filtered_result
 
@@ -376,6 +375,7 @@ async def fetch_data(page: Page):
 async def fetch_data_block(page: Page):
     timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
 
+    print("Waiting %ss for videos to load..." % load_time)
     time.sleep(load_time)
 
     temp_list_length = 0
@@ -559,7 +559,7 @@ def write_csv_block(data_dict_block):
         for data_dict in data_dict_block:
             writer.writerow(data_dict)
 
-    print("BLOCK WRITTEN - %d Entries saved" % block_length)
+    print("BLOCK WRITTEN - %d Entries saved\n" % block_length)
 
 
 async def save_cookies(page: Page):
