@@ -16,7 +16,7 @@ use_url = False
 use_username = True
 use_nickname = False
 use_video_caption = True
-use_video_sound = False
+use_video_sound = True
 use_number_likes = True
 use_number_comments = True
 use_number_bookmarks = True
@@ -213,8 +213,6 @@ async def get_username_all(page: Page):
     filtered_result = []
     for item in result:
         if item == "":
-            print("DEBUG\n")
-            print(item)
             filtered_result.append(item)
             continue
         filtered_result.append(item.replace(",", ""))
@@ -245,12 +243,14 @@ async def get_video_caption_all(page: Page):
 
 
 async def get_video_sound_all(page: Page):
-    result = await get_all_content_by_data_e2e("div", "css-pvx3oa-DivMusicText epjbyn3", page)
+    print("Getting video_music...")
+    result = await get_all_content_by_data_e2e("h4", "video-music", page)
     filtered_result = []
     for item in result:
         if item == "":
             filtered_result.append(item)
             continue
+        print("Appending %s" % item)
         filtered_result.append(item.replace(",", ""))
     return filtered_result
 
@@ -287,7 +287,6 @@ async def get_number_bookmarks_all(page: Page):
         if item == "":
             filtered_result.append(item)
             continue
-        print("Appending %s" % item)
         filtered_result.append(item.replace(",", ""))
     return filtered_result
 
